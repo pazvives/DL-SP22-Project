@@ -30,11 +30,15 @@ def get_transform(train):
 def get_model(num_classes):
     
     checkpoint = torch.load('/checkpoints/checkpoint_0075.pth.tar')
-    backbone = checkpoint['state_dict']
+    model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, 'store_true')
+    model.load_state_dict(checkpoint['state_dict'])
 
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                   aspect_ratios=((0.5, 1.0, 2.0),))
+    backbone = []
+    for module in model.modules():
+        backbone.append(module)
 
+    features = nn.Sequential(*backbone)
+    features.out_channels = 1280
     # let's define what are the feature maps that we will
     # use to perform the region of interest cropping, as well as
     # the size of the crop after rescaling.
@@ -47,8 +51,8 @@ def get_model(num_classes):
                                                     sampling_ratio=2)
 
     # put the pieces together inside a FasterRCNN model
-    model = FasterRCNN(backbone,
-                       num_classes=2,
+    model = FasterRCNN(features,
+                       num_classes=100,
                        rpn_anchor_generator=anchor_generator,
                        box_roi_pool=roi_pooler)
 
@@ -78,7 +82,7 @@ def main():
     optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
-    num_epochs = 1
+    num_epochs = 100
 
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
