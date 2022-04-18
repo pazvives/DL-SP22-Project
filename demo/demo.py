@@ -47,7 +47,7 @@ def get_model(num_classes):
       new_state_dict[k]=v
 
     model.load_state_dict(new_state_dict)
-    model.load_state_dict(checkpoint['state_dict'])
+    #model.load_state_dict(checkpoint['state_dict'])
 
     backbone = []
     for module in model.modules():
