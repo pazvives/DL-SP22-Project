@@ -8,9 +8,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+from collections import OrderedDict
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
+
 
 import moco.builder
 import torchvision.models as models
@@ -31,7 +33,20 @@ def get_transform(train):
 def get_model(num_classes):
 
     checkpoint = torch.load('checkpoints/checkpoint_0075.pth.tar')
-    model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, 'store_true')
+    model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, False)
+
+    #TODO: use DataParallel
+    state_dict = checkpoint['state_dict']
+    new_state_dict = OrderedDict()
+
+    for k, v in state_dict.items():
+      if 'module' in k:
+        k = k.replace('module.', '')
+      # else:
+      #   k = k.replace('features.module.', 'module.features.')
+      new_state_dict[k]=v
+
+    model.load_state_dict(new_state_dict)
     model.load_state_dict(checkpoint['state_dict'])
 
     backbone = []
