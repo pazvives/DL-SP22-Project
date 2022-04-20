@@ -32,7 +32,7 @@ def get_transform(train):
 
 def get_model(num_classes):
 
-    checkpoint = torch.load('checkpoints/checkpoint_0081.pth.tar')
+    checkpoint = torch.load('checkpoints/checkpoint_0100.pth.tar')
     model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, True)
 
     #TODO: use DataParallel
@@ -123,10 +123,10 @@ def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     num_classes = 100
-    train_dataset = LabeledDataset(root='labeled', split="training", transforms=get_transform(train=True))
+    train_dataset = LabeledDataset(root='/labeled', split="training", transforms=get_transform(train=True))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
-    valid_dataset = LabeledDataset(root='labeled', split="validation", transforms=get_transform(train=False))
+    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     model = get_model(num_classes)
