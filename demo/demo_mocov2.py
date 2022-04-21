@@ -3,6 +3,7 @@
 # modified from https://pytorch.org/docs/stable/data.html
 
 # Generic 
+import builtins
 import argparse
 import os
 import shutil
@@ -15,6 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+import torch.distributed as dist
 import torchvision.models as models
 import torch.multiprocessing as mp
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
@@ -95,7 +97,7 @@ def main():
 
 
     # TODO: i would like to try this in a second try, in the meanwhile just logging
-    print("ENV - WORLD_SIZE:{}".format(int(os.environ["WORLD_SIZE"])))
+    #print("ENV - WORLD_SIZE:{}".format(int(os.environ["WORLD_SIZE"])))
     if args.dist_url == "env://" and args.world_size == -1:
         args.world_size = int(os.environ["WORLD_SIZE"])
 
@@ -142,7 +144,7 @@ def main_worker(gpu, ngpus_per_node, args):
     # create model
     print("=> creating model: {}'".format(args.arch))
     num_classes = 101
-    model       = get_model(num_classes, args.backbone_path)
+    model       = get_model(num_classes, args.bp)
     print(model)
 
     if args.distributed:
@@ -210,8 +212,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                                 drop_last   = True )
 
     # TODO[REQUIRED]: review validation, see inside loop below
-    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
-    valid_loader  = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
+    #valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
+    #valid_loader  = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -232,8 +234,8 @@ def main_worker(gpu, ngpus_per_node, args):
         # evaluate(model, valid_loader, device=device)
         # evaluate(model, valid_loader, device=torch.device('cpu')) 
 
-        if not args.multiprocessing_distributed or 
-               (args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
+        if not args.multiprocessing_distributed or (
+                args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch':  args.arch,
@@ -252,11 +254,11 @@ def adjust_learning_rate(optimizer, epoch, args):
     """ Decay the learning rate based on schedule """
 
     lr = args.lr
-    if args.cos:  # cosine lr schedule
-        lr *= 0.5 * (1. + math.cos(math.pi * epoch / args.epochs))
-    else:  # stepwise lr schedule
-        for milestone in args.schedule:
-            lr *= 0.1 if epoch >= milestone else 1.
+    #if args.cos:  # cosine lr schedule
+    #    lr *= 0.5 * (1. + math.cos(math.pi * epoch / args.epochs))
+    #else:  # stepwise lr schedule
+    for milestone in args.schedule:
+        lr *= 0.1 if epoch >= milestone else 1.
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 

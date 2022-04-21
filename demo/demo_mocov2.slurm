@@ -45,4 +45,5 @@ python demo_mocov2.py \
 --batch-size 256 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
+--epochs 3
 "
