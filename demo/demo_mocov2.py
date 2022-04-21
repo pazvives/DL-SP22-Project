@@ -192,12 +192,6 @@ def main_worker(gpu, ngpus_per_node, args):
                                    split      = "training", 
                                    transforms = get_transform(train = True))
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                               batch_size = args.batch_size, 
-                                               shuffle=True, 
-                                               num_workers=2, 
-                                               collate_fn=utils.collate_fn)
-
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
