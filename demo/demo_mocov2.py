@@ -130,13 +130,18 @@ def main():
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
     model = get_model(num_classes)
+    ngpus_per_node = torch.cuda.device_count()
+    if ngpus_per_node > 1:
+        print("=> GPUs available per node: '{}'".format(ngpus_per_node))
+        model = nn.DataParallel(model)
+
     model.to(device)
 
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=0.0005)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
-    num_epochs = 20
+    num_epochs = 10
 
     for epoch in range(num_epochs):
         # train for one epoch, printing every 10 iterations
