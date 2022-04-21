@@ -8,14 +8,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
+
 from collections import OrderedDict
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 
+import torchvision.models as models
+import torch.multiprocessing as mp
 
 import moco.builder
-import torchvision.models as models
+
 import transforms as T
 import utils
 from engine import train_one_epoch, evaluate
@@ -35,37 +38,20 @@ def get_model(num_classes):
     checkpoint = torch.load('checkpoints/checkpoint_0100.pth.tar')
     model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, True)
 
-    #TODO: use DataParallel
+    #TODO: alternative, use DataParallel
     state_dict = checkpoint['state_dict']
     new_state_dict = OrderedDict()
 
     for k, v in state_dict.items():
       if 'module' in k:
         k = k.replace('module.', '')
-      # else:
-      #   k = k.replace('features.module.', 'module.features.')
       new_state_dict[k]=v
 
     model.load_state_dict(new_state_dict)
     model_feature = model.encoder_q
-
-    # backbone = []
-    # for module in model_feature.modules():
-    #     backbone.append(module)
-
-    # features = nn.Sequential(*backbone)
-    # features.out_channels = 128
     model_feature = nn.Sequential(*list(model.encoder_q.children()))[:-1]
     model_feature.out_channels = 2048
 
-    # print(features)
-    # let's define what are the feature maps that we will
-    # use to perform the region of interest cropping, as well as
-    # the size of the crop after rescaling.
-    # if your backbone returns a Tensor, featmap_names is expected to
-    # be [0]. More generally, the backbone should return an
-    # OrderedDict[Tensor], and in featmap_names you can choose which
-    # feature maps to use.
     anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
                                        aspect_ratios=((0.5, 1.0, 2.0),))
 
@@ -79,50 +65,13 @@ def get_model(num_classes):
                        rpn_anchor_generator=anchor_generator,
                        box_roi_pool=roi_pooler)
 
-    # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
-    # # get number of input features for the classifier
-    # in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # # replace the pre-trained head with a new one
-    # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-
     return model
 
-    # checkpoint = torch.load('/checkpoints/checkpoint_0075.pth.tar')
-    # backbone = checkpoint['state_dict']
-    #
-    # anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-    #                                    aspect_ratios=((0.5, 1.0, 2.0),))
-    #
-    # # let's define what are the feature maps that we will
-    # # use to perform the region of interest cropping, as well as
-    # # the size of the crop after rescaling.
-    # # if your backbone returns a Tensor, featmap_names is expected to
-    # # be [0]. More generally, the backbone should return an
-    # # OrderedDict[Tensor], and in featmap_names you can choose which
-    # # feature maps to use.
-    # roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-    #                                                 output_size=7,
-    #                                                 sampling_ratio=2)
-    #
-    # # put the pieces together inside a FasterRCNN model
-    # model = FasterRCNN(backbone,
-    #                    num_classes=2,
-    #                    rpn_anchor_generator=anchor_generator,
-    #                    box_roi_pool=roi_pooler)
-    #
-    #
-    # # model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False)
-    # # # get number of input features for the classifier
-    # # in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # # # replace the pre-trained head with a new one
-    # # model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-    #
-    # return model
 
 def main():
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    num_classes = 100
+    num_classes = 101
     train_dataset = LabeledDataset(root='/labeled', split="training", transforms=get_transform(train=True))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=2, shuffle=True, num_workers=2, collate_fn=utils.collate_fn)
 
