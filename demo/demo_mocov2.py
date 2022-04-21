@@ -14,6 +14,7 @@ from collections import OrderedDict
 # Torch
 import torch
 import torch.nn as nn
+import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
 import torchvision
 import torch.distributed as dist
@@ -186,6 +187,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # TODO[not now]: add here if we wanna resumefrom checkpoint (the whole model)
 
+    cudnn.benchmark
     # Data loading
     # TODO[REQUIRED]: define transformations for training
     train_dataset = LabeledDataset(root       = '/labeled', 
@@ -203,7 +205,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                                 num_workers = args.workers, 
                                                 pin_memory  = True, 
                                                 sampler     = train_sampler, 
-                                                drop_last   = True )
+                                                drop_last   = True, 
+                                                collate_fn  = utils.collate_fn)
 
     # TODO[REQUIRED]: review validation, see inside loop below
     #valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
