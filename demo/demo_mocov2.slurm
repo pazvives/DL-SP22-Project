@@ -24,6 +24,7 @@
 
 mkdir /tmp/$USER
 export SINGULARITY_CACHEDIR=/tmp/$USER
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
 
 ##cp -rp /scratch/DL22SP/unlabeled_224.sqsh /tmp
 cp -rp /scratch/DL22SP/labeled.sqsh /tmp
@@ -42,7 +43,7 @@ conda activate
 python demo_mocov2.py \
 --bp checkpoints/checkpoint_0100.pth.tar \
 --lr 0.03 \
---batch-size 256 \
+--batch-size 8 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
 --epochs 3
