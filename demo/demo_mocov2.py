@@ -209,8 +209,8 @@ def main_worker(gpu, ngpus_per_node, args):
                                                 collate_fn  = utils.collate_fn)
 
     # TODO[REQUIRED]: review validation, see inside loop below
-    #valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
-    #valid_loader  = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
+    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
+    valid_loader  = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -229,7 +229,7 @@ def main_worker(gpu, ngpus_per_node, args):
         # TODO[REQUIRED]: figure out how/when we evaluate the model
         # evaluate on the test dataset
         # evaluate(model, valid_loader, device=device)
-        # evaluate(model, valid_loader, device=torch.device('cpu')) 
+        evaluate(model, valid_loader, device=torch.device('cpu')) 
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
