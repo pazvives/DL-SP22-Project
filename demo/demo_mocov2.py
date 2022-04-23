@@ -293,7 +293,7 @@ def get_model(num_classes, backbone_path):
     model_feature = nn.Sequential(*list(model.encoder_q.children()))[:-1]
     model_feature.out_channels = 2048
 
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
+    anchor_generator = AnchorGenerator(sizes=((8, 16, 32, 64, 128, 256, 512),),
                                        aspect_ratios=((0.5, 1.0, 2.0),))
 
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
