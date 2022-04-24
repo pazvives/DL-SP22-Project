@@ -9,7 +9,7 @@ import os
 import shutil
 import warnings
 from collections import OrderedDict
-
+from datetime import datetime
 
 # Torch
 import torch
@@ -92,12 +92,11 @@ def main():
 
     args = parser.parse_args()
 
-    print("ARGS")
-    print("Batch_Size".format(args.batch_size))
-    print("LR:{}".format(args.lr))
-    print("Momentum:{}".format(args.momentum))
-    print("Weight Decay:{}".format(args.weight_decay))
-    print("Backbone Used:{}".format(args.bp))
+    print("** Batch_Size:{}".format(args.batch_size))
+    print("** LR:{}".format(args.lr))
+    print("** Momentum:{}".format(args.momentum))
+    print("** Weight Decay:{}".format(args.weight_decay))
+    print("** Backbone Used:{}".format(args.bp))
 
     if args.gpu is not None:
         warnings.warn('You have chosen a specific GPU. This will completely '
@@ -252,11 +251,16 @@ def main_worker(gpu, ngpus_per_node, args):
                 'arch':  args.arch,
                 'state_dict': model.state_dict(),
                 'optimizer' : optimizer.state_dict(),
-            }, is_best=False, filename='checkpoint_{:04d}.pth.tar'.format(epoch))
+            }, is_best=False, filename='checkpoint_{:04d}.pth.tar'.format(epoch, 
+                                                                          datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")))
 
         print("Epoch [{}] Complete!".format(epoch))
-    print("Training Complete!")
 
+
+    print("Training Complete!")
+    print("Training Losses: \n".format(training_losses))
+    print("Validation Stats: \n".format(validation_stats))
+    
 # TODO: play with different lrs?
 # If we use the stepswise only, we can leave something as below, where step_size
 # tells us after how many epochs is the lr update and gamma tells us the proportion of update.
