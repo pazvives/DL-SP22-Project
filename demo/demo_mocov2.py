@@ -213,6 +213,8 @@ def main_worker(gpu, ngpus_per_node, args):
     valid_loader  = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2, collate_fn=utils.collate_fn)
 
 
+    training_losses  = []
+    validation_stats = []
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -220,16 +222,21 @@ def main_worker(gpu, ngpus_per_node, args):
         # Update lr
         adjust_learning_rate(optimizer, epoch, args)
 
-        # TODO[REQUIRED]: define the train function: equivalent of train_one_epoch
+        # Train one epoch
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         print("Calling train_one_epoch with device: {}".format(device))
-        train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=10) #Jiachen's
-        # train(train_loader, model, criterion, optimizer, epoch, args) #This is from moco
 
-        # TODO[REQUIRED]: figure out how/when we evaluate the model
-        # evaluate on the test dataset
-        # evaluate(model, valid_loader, device=device)
-        evaluate(model, valid_loader, device=torch.device('cpu')) 
+        metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100) 
+        
+        # Saving total loss
+        training_losses.append(metric_logger['loss'])
+
+        
+        # Saving validation accuracy
+        coco_evaluator = evaluate(model, valid_loader, device=torch.device('cpu')) 
+        coco_eval_bbox = coco_evaluator.coco_eval['bbox'] #pycocotools.cocoeval.COCOeval object returned
+        validation_stats.append(coco_eval_bbox.stats[0]) #(AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]
+
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
@@ -240,8 +247,8 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
             }, is_best=False, filename='checkpoint_{:04d}.pth.tar'.format(epoch))
 
-
-        print("Training Complete!")
+        print("Epoch [{}] Complete!".format(epoch))
+    print("Training Complete!")
 
 # TODO: play with different lrs?
 # If we use the stepswise only, we can leave something as below, where step_size
@@ -293,7 +300,7 @@ def get_model(num_classes, backbone_path):
     model_feature = nn.Sequential(*list(model.encoder_q.children()))[:-1]
     model_feature.out_channels = 2048
 
-    anchor_generator = AnchorGenerator(sizes=((8, 16, 32, 64, 128, 256, 512),),
+    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
                                        aspect_ratios=((0.5, 1.0, 2.0),))
 
     roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
