@@ -92,6 +92,13 @@ def main():
 
     args = parser.parse_args()
 
+    print("ARGS")
+    print("Batch_Size".format(args.batch_size))
+    print("LR:{}".format(args.lr))
+    print("Momentum:{}".format(args.momentum))
+    print("Weight Decay:{}".format(args.weight_decay))
+    print("Backbone Used:{}".format(args.bp))
+
     if args.gpu is not None:
         warnings.warn('You have chosen a specific GPU. This will completely '
                       'disable data parallelism.')
