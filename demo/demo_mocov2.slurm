@@ -42,7 +42,7 @@ source /ext3/env.sh
 conda activate
 python demo_mocov2.py \
 --bp checkpoints/checkpoint_0100.pth.tar \
---lr 0.03 \
+--lr 0.1 \
 --batch-size 8 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
