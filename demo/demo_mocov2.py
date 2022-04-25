@@ -258,11 +258,11 @@ def main_worker(gpu, ngpus_per_node, args):
                                                                           datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")))
 
         print("Epoch [{}] Complete!".format(epoch))
+        print("Training Losses: \n{}".format(training_losses))
+        print("Validation Stats: \n{}".format(validation_stats))
 
 
     print("Training Complete!")
-    print("Training Losses: \n".format(training_losses))
-    print("Validation Stats: \n".format(validation_stats))
 
 # TODO: play with different lrs?
 # If we use the stepswise only, we can leave something as below, where step_size
@@ -295,7 +295,7 @@ def get_transform(train):
     return T.Compose(transforms)
 
 
-def get_model(num_classes, backbone_path): 
+def get_model_with_fpn(num_classes, backbone_path): 
     """ Same FasterRCNN model but adding FPN. 
         Keeping both until we have a better understanding of what we want as final."""
 
@@ -354,7 +354,7 @@ def get_model(num_classes, backbone_path):
     return model
 
 
-def get_model_backup(num_classes, backbone_path): 
+def get_model(num_classes, backbone_path): 
 
     print("Loading backbone checkpoint at:{}".format(backbone_path))
     checkpoint = torch.load(backbone_path)
