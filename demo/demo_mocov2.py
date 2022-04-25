@@ -20,11 +20,12 @@ import torchvision
 import torch.distributed as dist
 import torchvision.models as models
 import torch.multiprocessing as mp
-from detectron2.layers import FrozenBatchNorm2d
+#from detectron2.layers import FrozenBatchNorm2d
 from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
+from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 
 # Project Specific
 import moco.builder
@@ -325,15 +326,15 @@ def get_model(num_classes, backbone_path):
                                                             3)
 
     #Freeze Norm Layers - Not using it for now
-    # for module in (pretrained_backbone.modules()):
-    #     if isinstance(child, nn.BatchNorm2d):
-    #         module.eval()
-    #         for param in child.parameters():
-    #             param.requires_grad = False
+    for module in (pretrained_backbone.modules()):
+        if isinstance(module, nn.BatchNorm2d):
+            module.eval()
+            for param in module.parameters():
+                param.requires_grad = False
         
 
-    frozen_pretrained_backbone = FrozenBatchNorm2d.convert_frozen_batchnorm(pretrained_backbone)
-    backbone = _resnet_fpn_extractor(frozen_pretrained_backbone, trainable_backbone_layers)
+    #frozen_pretrained_backbone = FrozenBatchNorm2d.convert_frozen_batchnorm(pretrained_backbone)
+    backbone = _resnet_fpn_extractor(pretrained_backbone, trainable_backbone_layers)
     
 
     #TODO: delete anchor and roi pooler as they are default values
