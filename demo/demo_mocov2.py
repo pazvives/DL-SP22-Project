@@ -237,7 +237,7 @@ def main_worker(gpu, ngpus_per_node, args):
         metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100) 
         
         # Saving total loss
-        training_losses.append(metric_logger['loss'])
+        training_losses.append(metric_logger.meters['loss'])
 
         
         # Saving validation accuracy
