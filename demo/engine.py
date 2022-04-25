@@ -22,12 +22,13 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
     #metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
 
-    lr_scheduler = None
-    if epoch == 0:
-        warmup_factor = 1. / 1000
-        warmup_iters = min(1000, len(data_loader) - 1)
+    #TODO: remove scheduler
+    #lr_scheduler = None
+    #if epoch == 0:
+    #    warmup_factor = 1. / 1000
+    #    warmup_iters = min(1000, len(data_loader) - 1)
 
-        lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
+        #lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
    #Epoch: [11]  [   0/3750]  eta: 1:24:30  lr: 0.100000  loss: 10.4789 (10.4789)  
    #loss_box_reg: 0.0682 (0.0682)  loss_classifier: 0.8429 (0.8429)  
@@ -58,11 +59,11 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         losses.backward()
         optimizer.step()
 
-        if lr_scheduler is not None:
-            lr_scheduler.step()
+        #if lr_scheduler is not None:
+        #    lr_scheduler.step()
 
         metric_logger.update(loss=losses_reduced, **loss_dict_reduced)
-        metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+        #metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
     return metric_logger
 
