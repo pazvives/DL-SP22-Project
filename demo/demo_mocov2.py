@@ -20,9 +20,12 @@ import torchvision
 import torch.distributed as dist
 import torchvision.models as models
 import torch.multiprocessing as mp
+#from detectron2.layers import FrozenBatchNorm2d
+from torchvision.models.detection.backbone_utils import _validate_trainable_layers
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
+from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
 
 # Project Specific
 import moco.builder
@@ -235,7 +238,7 @@ def main_worker(gpu, ngpus_per_node, args):
         metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100) 
         
         # Saving total loss
-        training_losses.append(metric_logger['loss'])
+        training_losses.append(metric_logger.meters['loss'])
 
         
         # Saving validation accuracy
@@ -255,12 +258,12 @@ def main_worker(gpu, ngpus_per_node, args):
                                                                           datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")))
 
         print("Epoch [{}] Complete!".format(epoch))
+        print("Training Losses: \n{}".format(training_losses))
+        print("Validation Stats: \n{}".format(validation_stats))
 
 
     print("Training Complete!")
-    print("Training Losses: \n".format(training_losses))
-    print("Validation Stats: \n".format(validation_stats))
-    
+
 # TODO: play with different lrs?
 # If we use the stepswise only, we can leave something as below, where step_size
 # tells us after how many epochs is the lr update and gamma tells us the proportion of update.
@@ -290,6 +293,66 @@ def get_transform(train):
     if train:
         transforms.append(T.RandomHorizontalFlip(0.5))
     return T.Compose(transforms)
+
+
+def get_model_with_fpn(num_classes, backbone_path): 
+    """ Same FasterRCNN model but adding FPN. 
+        Keeping both until we have a better understanding of what we want as final."""
+
+
+    print("Loading backbone checkpoint at:{}".format(backbone_path))
+    checkpoint = torch.load(backbone_path)
+    model      = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, True)
+
+    state_dict = checkpoint['state_dict']
+    new_state_dict = OrderedDict()
+
+    for k, v in state_dict.items():
+      if 'module' in k:
+        k = k.replace('module.', '')
+      new_state_dict[k]=v
+
+    model.load_state_dict(new_state_dict)
+    model_feature = nn.Sequential(*list(model.encoder_q.children()))[:-1]
+    model_feature.out_channels = 2048
+
+    # FPN 
+    pretrained_backbone       = model_feature
+    trainable_backbone_layers = 5
+    trainable_backbone_layers = _validate_trainable_layers(
+                                                            pretrained_backbone, 
+                                                            trainable_backbone_layers, 
+                                                            5,
+                                                            3)
+
+    #Freeze Norm Layers - Not using it for now
+    for module in (pretrained_backbone.modules()):
+        if isinstance(module, nn.BatchNorm2d):
+            module.eval()
+            for param in module.parameters():
+                param.requires_grad = False
+        
+
+    #frozen_pretrained_backbone = FrozenBatchNorm2d.convert_frozen_batchnorm(pretrained_backbone)
+    backbone = _resnet_fpn_extractor(pretrained_backbone, trainable_backbone_layers)
+    
+
+    #TODO: delete anchor and roi pooler as they are default values
+    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
+                                       aspect_ratios=((0.5, 1.0, 2.0),))
+
+    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
+                                                    output_size=7,
+                                                    sampling_ratio=2)
+
+    # put the pieces together inside a FasterRCNN model
+    model = FasterRCNN(model_feature,
+                       num_classes=num_classes,
+                       rpn_anchor_generator=anchor_generator,
+                       box_roi_pool=roi_pooler)
+
+    return model
+
 
 def get_model(num_classes, backbone_path): 
 
