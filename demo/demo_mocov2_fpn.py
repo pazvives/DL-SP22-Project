@@ -133,8 +133,7 @@ def main_worker(gpu, ngpus_per_node, args):
         def print_pass(*args):
             pass
 
-        builtins.
-        print = print_pass
+        builtins.print = print_pass
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
