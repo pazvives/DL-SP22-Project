@@ -151,8 +151,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # create model
     print("=> creating model: {}'".format(args.arch))
-    num_classes = 101
-    model = get_model_with_fpn(num_classes, args.bp)
+    model = get_model_with_fpn(args.bp)
     print(model)
 
     if args.distributed:
@@ -262,7 +261,7 @@ def main_worker(gpu, ngpus_per_node, args):
         print("Validation Stats: \n{}".format(validation_stats))
 
     print("Training Complete!")
-    print("Best val loss in epoch {}":.format(validation_stats.argmax()))
+    print("Best val loss in epoch {}".format(validation_stats.argmax()))
 
 
 # TODO: play with different lrs?
