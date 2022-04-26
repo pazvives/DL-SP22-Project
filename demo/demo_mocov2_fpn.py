@@ -220,8 +220,9 @@ def main_worker(gpu, ngpus_per_node, args):
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2,
                                                collate_fn=utils.collate_fn)
 
-    training_losses = []
+    training_losses  = []
     validation_stats = []
+    
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -241,24 +242,27 @@ def main_worker(gpu, ngpus_per_node, args):
         # Saving validation accuracy
         coco_evaluator = evaluate(model, valid_loader, device=torch.device('cpu'))
         coco_eval_bbox = coco_evaluator.coco_eval['bbox']  # pycocotools.cocoeval.COCOeval object returned
-        validation_stats.append(coco_eval_bbox.stats[0])  # (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]
+
+        validation_ap = coco_eval_bbox.stats[0]          # (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]
+        validation_stats.append(validation_ap) 
+
+
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': args.arch,
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-            }, is_best=False, filename='checkpoint_{:04d}.pth.tar'.format(epoch,
-                                                                          datetime.now().strftime(
-                                                                              "%Y_%m_%d-%I_%M_%S_%p")))
+            save_checkpoint({   'epoch': epoch + 1,
+                                'arch': args.arch,
+                                'backbone_path' : args.bp,
+                                'state_dict': model.state_dict(),
+                                'optimizer': optimizer.state_dict(),
+                            }, filename='checkpoint_{:04d}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")))
 
         print("Epoch [{}] Complete!".format(epoch))
         print("Training Losses: \n{}".format(training_losses))
         print("Validation Stats: \n{}".format(validation_stats))
 
     print("Training Complete!")
+    print("Best val loss in epoch {}":.format(validation_stats.argmax()))
 
 
 # TODO: play with different lrs?
@@ -278,10 +282,9 @@ def adjust_learning_rate(optimizer, epoch, args):
         param_group['lr'] = lr
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, filename='checkpoint.pth.tar'):
+
     torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
 
 
 def get_transform(train):
@@ -292,62 +295,46 @@ def get_transform(train):
     return T.Compose(transforms)
 
 
-def get_model_with_fpn(num_classes, backbone_path):
-    """ Same FasterRCNN model but adding FPN.
-        Keeping both until we have a better understanding of what we want as final."""
-
-
+def get_model_with_fpn(backbone_path): 
+    """ FasterRCNN with FPN """
+    
+    from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor, _validate_trainable_layers
+    
     print("Loading backbone checkpoint at:{}".format(backbone_path))
-    checkpoint = torch.load(backbone_path)
-    model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, True)
+    checkpoint = torch.load(backbone_path, map_location=torch.device('cpu'))
     state_dict = checkpoint['state_dict']
+    
+    # Recover resnet 50 attributes from encoder_q of model
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        if k.startswith("module.encoder_q."):
-            k = k.replace("module.encoder_q.", "")
-            if ('fc.0.') in k:
-                k = k.replace('fc.0.', 'fc.')
-            elif ('fc.2.') in k:  # Removing 2nd fully connected layer
-                continue
-            new_state_dict[k] = v
-    pretrained_backbone = models.__dict__['resnet50'](num_classes=2048)
-    # pretrained_backbone       = models.__dict__['resnet50']()
-    print('resnet50')
-    print(pretrained_backbone)
-    pretrained_backbone.load_state_dict(new_state_dict)  # model_feature
-    print('load moco state dict')
-    print(pretrained_backbone)
+      if k.startswith("module.encoder_q."):
+        k = k.replace("module.encoder_q.", "")
+        if ('fc.0.') in k:
+          k = k.replace('fc.0.', 'fc.')
+        elif ('fc.2.') in k: # Removing 2nd fully connected layer
+          continue
+        new_state_dict[k]=v
+
+    # Build backbone from dictionary 
+    pretrained_backbone       = models.__dict__['resnet50'](num_classes=2048)
+    pretrained_backbone.load_state_dict(new_state_dict) 
+    if torch.cuda.is_available():
+      pretrained_backbone = nn.SyncBatchNorm.convert_sync_batchnorm(pretrained_backbone)
 
     trainable_backbone_layers = 5
-
     trainable_backbone_layers = _validate_trainable_layers(
-        pretrained_backbone,
-        trainable_backbone_layers,
-        5,
-        3)
-    print('Finished validating trainable layers')
-    # Freeze Norm Layers - Not using it for now
-    for module in (pretrained_backbone.modules()):
-        if isinstance(module, nn.BatchNorm2d):
-            module.eval()
-            for param in module.parameters():
-                param.requires_grad = False
-
-    print('finished freezing Norm layers')
-    # frozen_pretrained_backbone = FrozenBatchNorm2d.convert_frozen_batchnorm(pretrained_backbone)
+                                                            pretrained_backbone, 
+                                                            trainable_backbone_layers, 
+                                                            5,
+                                                            3)
+    
+    
+    # Build FasterRCNN
     backbone = _resnet_fpn_extractor(pretrained_backbone, trainable_backbone_layers)
-
-    # TODO: delete anchor and roi pooler as they are default values
-    anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),),
-                                       aspect_ratios=((0.5, 1.0, 2.0),))
-    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
-                                                    output_size=7,
-                                                    sampling_ratio=2)
-    # put the pieces together inside a FasterRCNN model
-    model = FasterRCNN(backbone,
-                       num_classes=num_classes,
-                       rpn_anchor_generator=anchor_generator,
-                       box_roi_pool=roi_pooler)
+    num_classes = 101
+    model    = FasterRCNN(backbone,
+                          num_classes = num_classes)
+    
     return model
 
 
