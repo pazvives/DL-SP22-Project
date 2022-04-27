@@ -131,9 +131,10 @@ def main_worker(gpu, ngpus_per_node, args):
     # suppress printing if not master
     if args.multiprocessing_distributed and args.gpu != 0:
         def print_pass(*args):
-            pass
-
-        builtins.print = print_pass
+            #pass
+            print(*args)
+            
+        #builtins.print = print_pass
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
@@ -231,9 +232,9 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Train one epoch
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        print("Calling train_one_epoch with device: {}".format(device))
+        #print("Calling train_one_epoch with device: {}".format(device))
 
-        metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100)
+        metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100,gpu=args.gpu)
 
         # Saving total loss
         training_losses.append(metric_logger.meters['loss'])
@@ -317,8 +318,15 @@ def get_model_with_fpn(backbone_path):
     # Build backbone from dictionary 
     pretrained_backbone       = models.__dict__['resnet50'](num_classes=2048)
     pretrained_backbone.load_state_dict(new_state_dict) 
-    if torch.cuda.is_available():
-      pretrained_backbone = nn.SyncBatchNorm.convert_sync_batchnorm(pretrained_backbone)
+    
+    #Freeze Norm Layers - Not using it for now
+    for module in (pretrained_backbone.modules()):
+        if isinstance(module, nn.BatchNorm2d):
+            module.eval()
+            for param in module.parameters():
+                param.requires_grad = False
+    #if torch.cuda.is_available():
+    #  pretrained_backbone = nn.SyncBatchNorm.convert_sync_batchnorm(pretrained_backbone)
 
     trainable_backbone_layers = 5
     trainable_backbone_layers = _validate_trainable_layers(
@@ -331,8 +339,17 @@ def get_model_with_fpn(backbone_path):
     # Build FasterRCNN
     backbone = _resnet_fpn_extractor(pretrained_backbone, trainable_backbone_layers)
     num_classes = 101
+
+    anchor_generator = AnchorGenerator(sizes=(32, 64, 128, 256, 512),
+                   aspect_ratios=(0.5, 1.0, 2.0))
+
+    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0'],
+                                                    output_size=7,
+                                                    sampling_ratio=2)
     model    = FasterRCNN(backbone,
-                          num_classes = num_classes)
+                          num_classes = num_classes,
+                          rpn_anchor_generator = anchor_generator,
+                          box_roi_pool = roi_pooler)
     
     return model
 

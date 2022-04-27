@@ -10,17 +10,17 @@ from coco_eval import CocoEvaluator
 import utils
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, gpu=-1):
 
     model.train()
 
     #TODO: delete
     running_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    print("train_one_epoch with device: {}".format(running_device))
+    #print("train_one_epoch with device:{}-{}".format(gpu, running_device))
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     #metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}]'.format(epoch)
+    header = '[GPU:{}] Epoch: [{}]'.format(gpu,epoch)
 
     #TODO: remove scheduler
     #lr_scheduler = None
@@ -39,19 +39,20 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
 
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-
+        print("[GPU:{}] Images:{}".format(gpu, images))
+        print("[GPU:{}] Targets:{}".format(gpu, targets))
         loss_dict = model(images, targets)
-
+        print("[GPU:{}] Loss dict:{}".format(gpu, loss_dict))
         losses = sum(loss for loss in loss_dict.values())
-
+        print("[GPU:{}] Sum of losses:{}".format(gpu, losses))
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = utils.reduce_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
-
+        print("[GPU:{}] Losses reduced:{}".format(gpu, losses_reduced))
         loss_value = losses_reduced.item()
-
+        print("[GPU:{}] Loss value:{}".format(gpu, loss_value))
         if not math.isfinite(loss_value):
-            print("Loss is {}, stopping training".format(loss_value))
+            print("[GPU:{}] Loss is {}, stopping training".format(gpu, loss_value))
             print(loss_dict_reduced)
             sys.exit(1)
 

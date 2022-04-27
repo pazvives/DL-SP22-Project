@@ -16,6 +16,8 @@
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=24
 
+##SBATCH --partition=interactive
+
 #SBATCH --time=24:00:00
 #SBATCH --output=demo_%j.out
 #SBATCH --error=demo_%j.err
@@ -42,9 +44,9 @@ source /ext3/env.sh
 conda activate
 python demo_mocov2_fpn.py \
 --bp checkpoints/checkpoint_0100.pth.tar \
---lr 0.1 \
+--lr 0.03 \
 --batch-size 8 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
---epochs 500
+--epochs 10 
 "
