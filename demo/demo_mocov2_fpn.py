@@ -99,6 +99,7 @@ def main():
     print("** Momentum:{}".format(args.momentum))
     print("** Weight Decay:{}".format(args.weight_decay))
     print("** Backbone Used:{}".format(args.bp))
+    print("** Resume Model From: {}".format(args.resume))
 
     if args.gpu is not None:
         warnings.warn('You have chosen a specific GPU. This will completely '
@@ -152,7 +153,18 @@ def main_worker(gpu, ngpus_per_node, args):
 
     # create model
     print("=> creating model: {}'".format(args.arch))
-    model = get_model_with_fpn(args.bp)
+
+    checkpoint    = torch.load(args.resume) if args.resume else None
+    backbone_path = checkpoint['backbone_path'] if checkpoint else args.bp
+    model         = get_model_with_fpn(backbone_path)
+    if checkpoint:
+        state_dict = checkpoint['state_dict']
+        new_state_dict = OrderedDict()
+        for k, v in state_dict.items():
+            if 'module.' in k:
+                k = k.replace('module.', '')
+            new_state_dict[k] = v
+        model.load_state_dict(new_state_dict)
     print(model)
 
     if args.distributed:
@@ -183,16 +195,14 @@ def main_worker(gpu, ngpus_per_node, args):
         # this code only supports DistributedDataParallel.
         raise NotImplementedError("Only DistributedDataParallel is supported.")
 
-    # TODO[REQUIRED] define loss criterion and send to correct gpu device
-    # Eg from MOCO: criterion = nn.CrossEntropyLoss().cuda(args.gpu)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.SGD(params,
                                 args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
+    if checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer'])
     # ORIGINAL:  lr=0.001, momentum=0.9, momentum = ,weight_decay=0.0005
-
-    # TODO[not now]: add here if we wanna resumefrom checkpoint (the whole model)
 
     cudnn.benchmark
     # Data loading
@@ -220,9 +230,12 @@ def main_worker(gpu, ngpus_per_node, args):
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2,
                                                collate_fn=utils.collate_fn)
 
-    training_losses  = []
+    training_losses_avg    = []
+    training_losses_median = []
     validation_stats = []
-    
+
+    args.start_epoch = checkpoint['epoch'] if checkpoint else 0
+    print("Starting in epoch: {}".format(args.start_epoch))
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -237,7 +250,11 @@ def main_worker(gpu, ngpus_per_node, args):
         metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100,gpu=args.gpu)
 
         # Saving total loss
-        training_losses.append(metric_logger.meters['loss'])
+        loss_avg = metric_logger.meters['loss'].global_avg
+        training_losses_avg.append(loss_avg)
+
+        loss_median = metric_logger.meters['loss'].median
+        training_losses_median.append(loss_median)
 
         # Saving validation accuracy
         coco_evaluator = evaluate(model, valid_loader, device=torch.device('cpu'))
@@ -245,24 +262,33 @@ def main_worker(gpu, ngpus_per_node, args):
 
         validation_ap = coco_eval_bbox.stats[0]          # (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]
         validation_stats.append(validation_ap) 
+        
+        best_val   = max(validation_stats)
+        is_best    = (validation_ap == best_val)
 
-
+        print("Epoch Stats [{}] - Loss Avg: {:5f}, Loss Median: {:5f}, Validation AP: {:5f}, Is Best: {}".format(epoch, loss_avg, loss_median, validation_ap, is_best))
 
         if not args.multiprocessing_distributed or (
                 args.multiprocessing_distributed and args.rank % ngpus_per_node == 0):
-            save_checkpoint({   'epoch': epoch + 1,
-                                'arch': args.arch,
-                                'backbone_path' : args.bp,
-                                'state_dict': model.state_dict(),
-                                'optimizer': optimizer.state_dict(),
-                            }, filename='checkpoint_{:04d}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")))
+            state = {   'epoch': epoch + 1,
+                        'arch' : args.arch,
+                        'backbone_path' : backbone_path,
+                        'state_dict'    : model.state_dict(),
+                        'optimizer'     : optimizer.state_dict(),
+                    }
+            filename = 'checkpoint_{:04d}_{}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d_%I_%M_%S_%p"))
+            save_checkpoint(state, filename)
 
-        print("Epoch [{}] Complete!".format(epoch))
-        print("Training Losses: \n{}".format(training_losses))
+            print("Epoch [{}] Complete, checkpoint saved: {}".format(epoch,filename))
+        print("Training Losses (average): \n{}".format(training_losses_avg))
+        print("Training Losses (median): \n{}".format(training_losses_median))
         print("Validation Stats: \n{}".format(validation_stats))
 
     print("Training Complete!")
-    print("Best val loss in epoch {}".format(validation_stats.argmax()))
+    if validation_stats:
+        best_val   = max(validation_stats)
+        max_epoch  = validation_stats.index(best_val)
+        print("Best val loss ({:5f}) was in epoch {}".format(best_val, max_epoch))
 
 
 # TODO: play with different lrs?
