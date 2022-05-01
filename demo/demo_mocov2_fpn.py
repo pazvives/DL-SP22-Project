@@ -29,7 +29,9 @@ from torchvision.models.detection.backbone_utils import _resnet_fpn_extractor, _
 
 # Project Specific
 import moco.builder
+import moco.loader
 import transforms as T
+import torchvision.transforms as T2
 import utils
 from engine import train_one_epoch, evaluate
 from dataset import UnlabeledDataset, LabeledDataset
@@ -80,7 +82,8 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'N processes per node, which has N GPUs. This is the '
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
-
+parser.add_argument('--transforms_version', default='v1', type=str,
+                    help='version of transformations for training set')
 
 # # options for moco v2
 # parser.add_argument('--mlp', action='store_true',
@@ -132,10 +135,10 @@ def main_worker(gpu, ngpus_per_node, args):
     # suppress printing if not master
     if args.multiprocessing_distributed and args.gpu != 0:
         def print_pass(*args):
-            #pass
-            print(*args)
+            pass
+            #print(*args)
             
-        #builtins.print = print_pass
+        builtins.print = print_pass
 
     if args.gpu is not None:
         print("Use GPU: {} for training".format(args.gpu))
@@ -206,10 +209,10 @@ def main_worker(gpu, ngpus_per_node, args):
 
     cudnn.benchmark
     # Data loading
-    # TODO[REQUIRED]: define transformations for training
+    print("Creating dataset for transformations, version: {}".format(args.transforms_version))
     train_dataset = LabeledDataset(root='/labeled',
                                    split="training",
-                                   transforms=get_transform(train=True))
+                                   transforms=get_transform(train=True, version = args.transforms_version))
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -226,7 +229,7 @@ def main_worker(gpu, ngpus_per_node, args):
                                                collate_fn=utils.collate_fn)
 
     # TODO[REQUIRED]: review validation, see inside loop below
-    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False))
+    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False,version = args.transforms_version))
     valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2,
                                                collate_fn=utils.collate_fn)
 
@@ -276,7 +279,7 @@ def main_worker(gpu, ngpus_per_node, args):
                         'state_dict'    : model.state_dict(),
                         'optimizer'     : optimizer.state_dict(),
                     }
-            filename = 'checkpoint_{:04d}_{}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d_%I_%M_%S_%p"))
+            filename = 'checkpoint_v1_{:04d}_{}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d_%I_%M_%S_%p"))
             save_checkpoint(state, filename)
 
             print("Epoch [{}] Complete, checkpoint saved: {}".format(epoch,filename))
@@ -312,13 +315,45 @@ def save_checkpoint(state, filename='checkpoint.pth.tar'):
 
     torch.save(state, filename)
 
+class ComposeTraining(object):
+    ''' Class to apply transforms only to image and not target '''
 
-def get_transform(train):
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+    def __call__(self, image, target):
+        for t in self.transforms:
+            image = t(image)
+        return image, target
+
+def get_transform(train=False, version="v1"):
     transforms = []
-    transforms.append(T.ToTensor())
     if train:
-        transforms.append(T.RandomHorizontalFlip(0.5))
-    return T.Compose(transforms)
+        if (version == "v1"):
+            transforms.append(T.ToTensor())
+            transforms.append(T.RandomHorizontalFlip(0.5))
+            return T.Compose(transforms)
+        elif (version == "v2"):
+            transforms.append(T2.RandomApply([
+                T2.ColorJitter(0.4, 0.4, 0.4, 0.1)  # not strengthened
+            ], p=0.8)),
+            transforms.append(T2.RandomGrayscale(p=0.2)),
+            transforms.append(T2.RandomApply([moco.loader.GaussianBlur([.1, 2.])], p=0.5)),
+            transforms.append(T2.RandomHorizontalFlip()),
+            transforms.append(T2.ToTensor()),
+            transforms.append(T2.Normalize( mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])),
+            return ComposeTraining(transforms)
+    else:
+        transforms.append(T.ToTensor())
+        return T.Compose(transforms)
+
+#def get_transform(train):
+#    transforms = []
+#    transforms.append(T.ToTensor())
+#    if train:
+#        transforms.append(T.RandomHorizontalFlip(0.5))
+#    return T.Compose(transforms)
 
 
 def get_model_with_fpn(backbone_path): 
