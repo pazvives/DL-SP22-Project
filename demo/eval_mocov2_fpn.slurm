@@ -40,10 +40,10 @@ singularity exec --nv \
 source /ext3/env.sh
 conda activate
 python eval_mocov2_fpn.py \
---checkpoint-path checkpoint_v1_0033_2022_05_01_06_58_10_PM.pth.tar \
+--checkpoint-path best_e2e_checkpoint.pth.tar \
 --batch-size 2 \
 --dataset-root /labeled \
 --dataset-split validation \
---workers 32 \
+--workers 2 \
 "
 
