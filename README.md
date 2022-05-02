@@ -21,6 +21,7 @@ At the moment the default values are the same as provided for validation in the 
 
 ## Evaluation Results
 
+```
 Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.236
 Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.398
 Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.249
@@ -34,3 +35,4 @@ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.035
 Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.217
 Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.506
 Epoch Stats [33] - Loss Avg: 0.115782, Loss Median: 0.104066, Validation AP: 0.236441, Is Best: True
+```
