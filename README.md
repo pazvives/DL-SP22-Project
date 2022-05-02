@@ -28,6 +28,8 @@ eval_<pid>.err
 
 ## Evaluation Results
 
+Our current model had the following accuracy when evaluating it with the validation dataset provided in the demo project.
+
 ```
 Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.237
 Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.398
