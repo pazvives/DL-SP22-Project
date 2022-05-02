@@ -8,13 +8,13 @@
 ##SBATCH --gres=gpu:1
 ##SBATCH --cpus-per-task=8
 
-##SBATCH --partition=n1s16-v100-2
-##SBATCH --gres=gpu:2
-##SBATCH --cpus-per-task=16
+#SBATCH --partition=n1s16-v100-2
+#SBATCH --gres=gpu:2
+#SBATCH --cpus-per-task=8
 
-#SBATCH --partition=n1c24m128-v100-4
-#SBATCH --gres=gpu:4
-#SBATCH --cpus-per-task=24
+##SBATCH --partition=n1c24m128-v100-4
+##SBATCH --gres=gpu:4
+##SBATCH --cpus-per-task=8
 
 ##SBATCH --partition=interactive
 
@@ -44,9 +44,10 @@ source /ext3/env.sh
 conda activate
 python demo_mocov2_fpn.py \
 --bp checkpoints/checkpoint_0100.pth.tar \
---resume m5_checkpoint_0009.pth.tar \
---lr 0.03 \
---batch-size 8 \
+--resume checkpoint_v1_0026_2022_05_01_07_34_37_AM.pth.tar \
+--transforms_version v1 \
+--lr 0.0003 \
+--batch-size 4 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
 --epochs 100
