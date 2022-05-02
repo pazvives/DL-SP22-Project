@@ -46,5 +46,5 @@ python main_moco.py \
 --batch-size 128 \
 --dist-url 'tcp://localhost:10001' --multiprocessing-distributed --world-size 1 --rank 0 \
 --mlp --moco-t 0.2 --aug-plus --cos \
-  /scratch/$USER/DL22SP
+scratch/$USER/DL-SP22-Project
 "
