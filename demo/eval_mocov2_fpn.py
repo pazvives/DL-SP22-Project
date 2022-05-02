@@ -37,7 +37,7 @@ parser.add_argument('--dataset-root', default='/labeled', type=str, metavar='PAT
 parser.add_argument('--dataset-split', default='validation', type=str, metavar='PATH',
                     help='folder under root directory where dataset is')
 
-parser.add_argument('--workers', default=2, type=int, metavar='N',
+parser.add_argument('--workers', default=32, type=int, metavar='N',
                     help='number of data loading workers')
 
 def main():
@@ -49,14 +49,20 @@ def main():
     data_root       = args.dataset_root
     data_split      = args.dataset_split
     workers         = args.workers
+    print("** Checkpoint Path: {}".format(checkpoint_path))
+    print("** Batch_Size:{}".format(batch_size))
+    print("** Dataset Root: {}".format(data_root))
+    print("** Dataset Split: {}".format(data_split))
+    print("** Workers: {}".format(workers))
 
     model = None
     if model_path:
         model = get_saved_model(model_path)
-
     elif checkpoint_path:
         model = load_model_from_checkpoint(checkpoint_path)
+    print("Model:\n{}".format(model))
 
+    print("Loading Data")
     valid_dataset = LabeledDataset(root  = data_root,
                                    split = data_split,
                                    transforms = get_transform(train=False))
@@ -67,8 +73,9 @@ def main():
                                                num_workers = workers,
                                                collate_fn  = utils.collate_fn)
 
+    print("Starting Evaluation")
     coco_evaluator = evaluate(model, valid_loader, device=torch.device('cpu'))
-
+    print("Finish Evaluation")
 
 def load_model_from_checkpoint(checkpoint_path):
 
