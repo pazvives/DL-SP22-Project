@@ -1,5 +1,4 @@
-# DL-SP22-Project
-Deep Learning - Spring 2022 - Final Project 
+# DL-SP22-Final Project
 
 All instructions below will assume:
 - The use of GCP and Slurm for their execution (as it was provided for the demo of the project).
