@@ -19,6 +19,13 @@ At the moment the default values are the same as provided for validation in the 
 --dataset-split validation \
 ```
 
+Outputs: as a result of the run, the two files below will be created, where you can check evaluations results and errors respectively.
+```
+eval_<pid>.out
+eval_<pid>.err
+```
+ 
+
 ## Evaluation Results
 
 ```
