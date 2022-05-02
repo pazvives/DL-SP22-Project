@@ -55,12 +55,16 @@ def main():
     print("** Dataset Split: {}".format(data_split))
     print("** Workers: {}".format(workers))
 
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print("** Device: {}".format(device))
+
     model = None
     if model_path:
         model = get_saved_model(model_path)
     elif checkpoint_path:
-        model = load_model_from_checkpoint(checkpoint_path)
-    print("Model:\n{}".format(model))
+        model = load_model_from_checkpoint(checkpoint_path, device)
+    model.to(device)
+    #print("Model:\n{}".format(model))
 
     print("Loading Data")
     valid_dataset = LabeledDataset(root  = data_root,
@@ -74,12 +78,11 @@ def main():
                                                collate_fn  = utils.collate_fn)
 
     print("Starting Evaluation")
-    coco_evaluator = evaluate(model, valid_loader, device=torch.device('cpu'))
+    coco_evaluator = evaluate(model, valid_loader, device=device)
     print("Finish Evaluation")
 
-def load_model_from_checkpoint(checkpoint_path):
+def load_model_from_checkpoint(checkpoint_path, device):
 
-    device        = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     checkpoint    = torch.load(checkpoint_path, map_location=device)
     backbone_path = checkpoint['backbone_path']
     model         = get_model_with_fpn(backbone_path)
