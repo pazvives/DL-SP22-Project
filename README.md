@@ -1,25 +1,43 @@
 # DL-SP22-Final Project
 
 All instructions below will assume:
-- The use of GCP and Slurm for their execution (as it was provided for the demo of the project).
-- The project is in a folder  "/scratch/$USER/DL-SP22-Project/".
 
+- The use of GCP and Slurm for their execution (as it was provided for the demo of the project).
+- The project is in a folder  ```/scratch/$USER/DL-SP22-Project/```
 
 
 # Model Evaluation
+
+To evaluate our best model run the following lines.
 
 ```
 cd /scratch/$USER/DL-SP22-Project/demo
 sbatch eval_mocov2_fpn.slurm
 ```
-Note: if needed, adjust the parameters --dataset-root and --dataset-split to the corresponding root and subfolder of the dataset you want to test.
-At the moment the default values are the same as provided for validation in the demo:
-```
---dataset-root /labeled \
---dataset-split validation \
-```
 
-Outputs: as a result of the run, the two files below will be created, where you can check evaluations results and errors respectively.
+Notes on script arguments: 
+     
+       --checkpoint-path <e2e_checkpoint_path> 
+       Use this option to indicate which e2e checkpoint you want to use for evaluation. 
+       At the moment it is setup to the e2e checkpoint we provided 'best_e2e_checkpoint.pth.tar'
+       Note that it should be a full network checkpoint (e2e), a backbone one would not be valid.
+       
+       --batch-size 2
+       Batch size for evaluation
+       
+       --dataset-root 
+       Root of dataset to be tested ('root' as required by 'LabeledDataset' class provided)
+       At the moment this is setup to '/labeled'.
+       
+       --dataset-split 
+       Split of dataset to be tested ('root' as required by 'LabeledDataset' class provided)
+       At the moment this is setup to validation.
+       
+
+Outputs of evaluation: 
+
+As a result of the script execution, the two files below will be created, where you can check evaluations results and errors respectively.
+
 ```
 eval_<pid>.out
 eval_<pid>.err
@@ -70,10 +88,8 @@ Note: all scripts related to backbone training can be found under the folder /DL
       cd /scratch/$USER/DL-SP22-Project/
       unsquashfs -d train unlabeled_224.sqsh
       ```
-      As a result of this action, there should be a folder called 'train' under the Project folder, which contains all the images.
+      As a result of this action, there will be a directory /train/unlabeled/ under the Project folder, which contains all the images.
       
-      [TODO Miao: to verify, do we need to an extra step here to create unlabeled folder before continuing with next step.
-      If so, let's also clarify that that structure of folders is 'key'/needed so to not try to modify it]
       
    3. Run SSL Backbone pretraining
       ```
