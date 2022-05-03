@@ -8,7 +8,7 @@ All instructions below will assume:
 
 # Model Evaluation
 
-To evaluate our best model run the following lines.
+To evaluate our model run the following lines.
 
 ```
 cd /scratch/$USER/DL-SP22-Project/demo
