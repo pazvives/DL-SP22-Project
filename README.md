@@ -72,7 +72,7 @@ Note: all scripts related to backbone training can be found under the folder /DL
       ```
       As a result of this action, there should be a folder called 'train' under the Project folder, which contains all the images.
       
-      [TODO: verify, do we need to an extra step here to create unlabeled folder before continuing with next step.
+      [TODO Miao: to verify, do we need to an extra step here to create unlabeled folder before continuing with next step.
       If so, let's also clarify that that structure of folders is 'key'/needed so to not try to modify it]
       
    3. Run SSL Backbone pretraining
@@ -87,12 +87,14 @@ Note: all scripts related to backbone training can be found under the folder /DL
 # Finetuning for object detection
 
    1. Run the finetuning script
-     ```
-     cd /DL-SP22-Project/demo
-     sbatch demo_mocov2_fpn.slurm
-     ```
+
+      ```
+      cd /DL-SP22-Project/demo
+      sbatch demo_mocov2_fpn.slurm
+      ``` 
      
-     Notes on script arguments: 
+     
+  Notes on script arguments: 
      
        --bp <ssl_checkpoint_path> 
        Use this option if you want to start the finetuning from a checkpoint from the SSL training.
@@ -106,7 +108,7 @@ Note: all scripts related to backbone training can be found under the folder /DL
        Use this option to run the script with different LR's.
      
      
-     Notes on replicating our results:
+  Notes on replicating our results:
      Our best model was the result of different runs:
-     - [TODO, PAZ TO ADD]
+     - [TODO PAZ: Complete with the details of our final run]
  
