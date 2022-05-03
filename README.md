@@ -67,13 +67,10 @@ Epoch Stats [36] - Loss Avg: 0.112939, Loss Median: 0.091720, Validation AP: 0.2
 
 # Model Training
 
-To replicate the results above, the two steps below should be followed:
+To replicate the results above, the two steps below should be followed. 
 
- 1. Backbone Training with SSL
- 2. Finetuning for object deteciton
-
-
-Note: all scripts related to backbone training can be found under the folder /DL-SP22-Project/moco/ and the ones related to finetuning and evaluation under /DL-SP22-Project/demo/.
+ 1. Backbone Training with SSL (code under /DL-SP22-Project/moco/)
+ 2. Finetuning for object deteciton (code under /DL-SP22-Project/demo/)
 
 
    ## Backbone Training with SSL
@@ -93,11 +90,20 @@ Note: all scripts related to backbone training can be found under the folder /DL
       
       
    3. Run SSL Backbone pretraining
+   
       ```
       cd /DL-SP22-Project/moco
       sbatch moco_v2.slurm
       ```
+      
+      To reproduce our best model it is needed to run the slurm above with the parameters as already defined in file. 
+      The result you the script with the parameters as defined in the slurm. 
+      
+      Notes on script arguments: 
+     
+            There is no need to modify any argument in the slurm file 
       Notes:
+      
       - Checkpoints are going to be saved every ten epochs. In our case, we ran it for 100 epochs and took the last epoch as the starting point for the             finetuning.
       - This script assumes your dataset root is 'scratch/$USER/DL-SP22-Project' (as first step indicates). If that is not the case, you should replace that path inside the slurm script.
 
@@ -111,7 +117,7 @@ Note: all scripts related to backbone training can be found under the folder /DL
       ``` 
      
      
-  Notes on script arguments: 
+   Notes on script arguments: 
      
        --bp <ssl_checkpoint_path> 
        Use this option if you want to start the finetuning from a checkpoint from the SSL training.
