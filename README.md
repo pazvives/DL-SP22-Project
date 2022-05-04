@@ -143,7 +143,7 @@ To replicate the results above, the two steps below should be followed.
        ```
        --bp <backbone_checkpoint_path> 
        Use this option to provide a backbone checkpoint to start the finetuning with the results from the SSL pretraining.
-       At the moment it is already setup to the desired checkpoint ```checkpoint_0100.pth.tar``` setup in previous step.
+       At the moment it is already setup to the desired checkpoint 'checkpoint_0100.pth.tar' setup in previous step.
 
        --resume <e2e_checkpoint_path>
        Use this option if you want to resume the finetuning from a checkpoint from the Finetuning training (named as e2e checkpoints).
