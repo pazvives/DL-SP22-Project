@@ -107,7 +107,7 @@ To replicate the results above, the two steps below should be followed.
       ```
       
       Note: this slurm assumes you follow step (1) and thus your data is unzipped under the project folder. 
-            If that is not the case, please replace the path ```/scratch/$USER/DL-SP22-Project/``` by the corresponding path.
+            If that is not the case, please replace the path ```/scratch/$USER/DL-SP22-Project/``` in the slurm file by the corresponding path.
       
       To reproduce our best model: run the slurm above with the parameters as already defined in file. 
       The resulting checkpoint after that run will be used as starting point for finetuning (```checkpoint_0100.pth.tar```).
