@@ -19,6 +19,7 @@ Notes on script arguments:
      
        --checkpoint-path <e2e_checkpoint_path> 
        Use this option to indicate which e2e checkpoint you want to use for evaluation. 
+       This path is expected to be under the demo folder.
        At the moment it is setup to the e2e checkpoint we provided 'best_e2e_checkpoint.pth.tar'
        Note that it should be a full network checkpoint (e2e), a backbone one would not be valid.
        
@@ -69,28 +70,36 @@ Epoch Stats [36] - Loss Avg: 0.112939, Loss Median: 0.091720, Validation AP: 0.2
 
 To replicate the results above, the two steps below should be followed. 
 
+
  1. Backbone Training with SSL (code under /DL-SP22-Project/moco/)
  2. Finetuning for object detection (code under /DL-SP22-Project/demo/)
+
 
 
    ## Backbone Training with SSL
   
    1. Copy unlabeled dataset to the Project folder
+      
       ```
       cp -rp /scratch/DL22SP/unlabeled_224.sqsh /scratch/$USER/DL-SP22-Project/
       ```  
       
    2. Unzip data
-      Our backbone training expects a folder of images (.PNG) and thus it is required to unzip the given sqsh dataset before starting the training 
+   
+      Note our backbone training expects a folder of images (.PNG) and thus it is required to unzip the given sqsh dataset before starting the training 
+      
       ```
       cd /scratch/$USER/DL-SP22-Project/
       unsquashfs -d train unlabeled_224.sqsh
       ```
+      
       As a result of this action, there will be a directory /train/unlabeled/ under the Project folder, which contains all the images.
       
       
    3. Run SSL Backbone pretraining
+      
       [For reproducibility read this step until the end before executing anything]
+      
       ```
       cd /DL-SP22-Project/moco
       sbatch moco_v2.slurm
@@ -100,8 +109,7 @@ To replicate the results above, the two steps below should be followed.
             If that is not the case, please replace the path ```/scratch/$USER/DL-SP22-Project/``` by the corresponding path.
       
       To reproduce our best model: run the slurm above with the parameters as already defined in file. 
-      The resulting checkpoint after that run (100 epochs) should be used as input to finetuning. 
-      The name of the checkpoint will be:  ```checkpoint_0100.pth.tar```
+      The resulting checkpoint after that run will be used as starting point for finetuning (```checkpoint_0100.pth.tar```).
 
       
       
@@ -120,6 +128,7 @@ To replicate the results above, the two steps below should be followed.
 
 
    2. Run the finetuning script
+      
       [For reproducibility read this step until the end before executing anything]
       
       ```
