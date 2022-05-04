@@ -17,7 +17,7 @@ sbatch eval_mocov2_fpn.slurm
 
 Notes on script arguments: 
      
-       --checkpoint-path <e2e_checkpoint_path> 
+       --checkpoint-path
        Use this option to indicate which e2e checkpoint you want to use for evaluation. 
        This path is expected to be under the demo folder.
        At the moment it is setup to the e2e checkpoint we provided 'best_e2e_checkpoint.pth.tar'
