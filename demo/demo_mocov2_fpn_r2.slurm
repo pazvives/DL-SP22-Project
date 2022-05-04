@@ -44,11 +44,12 @@ source /ext3/env.sh
 conda activate
 python demo_mocov2_fpn.py \
 --bp checkpoints/checkpoint_0100.pth.tar \
---resume checkpoint_v1_0036_2022_05_01_10_08_58_PM.pth.tar \
+--resume checkpoint_0022.pth.tar \
 --transforms_version v1 \
---lr 0.00003 \
+--lr 0.003 \
 --batch-size 4 \
 --multiprocessing-distributed \
 --world-size 1 --rank 0 \
---epochs 100
+--epochs 27
 "
+
