@@ -36,9 +36,7 @@ import utils
 from engine import train_one_epoch, evaluate
 from dataset import UnlabeledDataset, LabeledDataset
 
-# TODO: remove commented arguments once done
 parser = argparse.ArgumentParser(description='PyTorch Object Detection Training')
-# parser.add_argument('data', metavar='DIR', help='path to dataset')
 parser.add_argument('-a', '--arch', metavar='ARCH', default='FasterRCNN',
                     help='model architecture name')
 parser.add_argument('--bp', '--backbone-path', metavar='DIR',
@@ -85,14 +83,6 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 parser.add_argument('--transforms_version', default='v1', type=str,
                     help='version of transformations for training set')
 
-# # options for moco v2
-# parser.add_argument('--mlp', action='store_true',
-#                     help='use mlp head')
-# parser.add_argument('--aug-plus', action='store_true',
-#                     help='use moco v2 data augmentation')
-# parser.add_argument('--cos', action='store_true',
-#                     help='use cosine lr schedule')
-
 
 def main():
     args = parser.parse_args()
@@ -108,8 +98,6 @@ def main():
         warnings.warn('You have chosen a specific GPU. This will completely '
                       'disable data parallelism.')
 
-    # TODO: i would like to try this in a second try, in the meanwhile just logging
-    # print("ENV - WORLD_SIZE:{}".format(int(os.environ["WORLD_SIZE"])))
     if args.dist_url == "env://" and args.world_size == -1:
         args.world_size = int(os.environ["WORLD_SIZE"])
 
@@ -205,7 +193,6 @@ def main_worker(gpu, ngpus_per_node, args):
                                 weight_decay=args.weight_decay)
     if checkpoint:
         optimizer.load_state_dict(checkpoint['optimizer'])
-    # ORIGINAL:  lr=0.001, momentum=0.9, momentum = ,weight_decay=0.0005
 
     cudnn.benchmark
     # Data loading
@@ -228,10 +215,15 @@ def main_worker(gpu, ngpus_per_node, args):
                                                drop_last=True,
                                                collate_fn=utils.collate_fn)
 
-    # TODO[REQUIRED]: review validation, see inside loop below
-    valid_dataset = LabeledDataset(root='/labeled', split="validation", transforms=get_transform(train=False,version = args.transforms_version))
-    valid_loader = torch.utils.data.DataLoader(valid_dataset, batch_size=2, shuffle=False, num_workers=2,
-                                               collate_fn=utils.collate_fn)
+    valid_dataset = LabeledDataset( root='/labeled', 
+                                    split="validation", 
+                                    transforms=get_transform(train=False,version = args.transforms_version))
+
+    valid_loader = torch.utils.data.DataLoader( valid_dataset, 
+                                                batch_size=2, 
+                                                shuffle=False, 
+                                                num_workers=2,
+                                                collate_fn=utils.collate_fn)
 
     training_losses_avg    = []
     training_losses_median = []
@@ -248,8 +240,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # Train one epoch
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        #print("Calling train_one_epoch with device: {}".format(device))
-
         metric_logger = train_one_epoch(model, optimizer, train_loader, device, epoch, print_freq=100,gpu=args.gpu)
 
         # Saving total loss
@@ -279,7 +269,7 @@ def main_worker(gpu, ngpus_per_node, args):
                         'state_dict'    : model.state_dict(),
                         'optimizer'     : optimizer.state_dict(),
                     }
-            filename = 'checkpoint_v1_{:04d}_{}.pth.tar'.format(epoch, datetime.now().strftime("%Y_%m_%d_%I_%M_%S_%p"))
+            filename = 'checkpoint_{:04d}.pth.tar'.format(epoch)
             save_checkpoint(state, filename)
 
             print("Epoch [{}] Complete, checkpoint saved: {}".format(epoch,filename))
@@ -294,7 +284,7 @@ def main_worker(gpu, ngpus_per_node, args):
         print("Best val loss ({:5f}) was in epoch {}".format(best_val, max_epoch))
 
 
-# TODO: play with different lrs?
+
 # If we use the stepswise only, we can leave something as below, where step_size
 # tells us after how many epochs is the lr update and gamma tells us the proportion of update.
 # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
@@ -312,7 +302,7 @@ def adjust_learning_rate(optimizer, epoch, args):
 
 
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
-
+    ''' Saves checkpoint with the given filename '''
     torch.save(state, filename)
 
 class ComposeTraining(object):
@@ -347,13 +337,6 @@ def get_transform(train=False, version="v1"):
     else:
         transforms.append(T.ToTensor())
         return T.Compose(transforms)
-
-#def get_transform(train):
-#    transforms = []
-#    transforms.append(T.ToTensor())
-#    if train:
-#        transforms.append(T.RandomHorizontalFlip(0.5))
-#    return T.Compose(transforms)
 
 
 def get_model_with_fpn(backbone_path): 
@@ -416,11 +399,12 @@ def get_model_with_fpn(backbone_path):
 
 
 def get_model(num_classes, backbone_path):
+    ''' Version of our e2e model without FPN '''
+
     print("Loading backbone checkpoint at:{}".format(backbone_path))
     checkpoint = torch.load(backbone_path)
     model = moco.builder.MoCo(models.__dict__['resnet50'], 128, 65536, 0.999, 0.07, True)
 
-    # TODO: alternative, use DataParallel
     state_dict = checkpoint['state_dict']
     new_state_dict = OrderedDict()
 
@@ -441,7 +425,6 @@ def get_model(num_classes, backbone_path):
                                                     output_size=7,
                                                     sampling_ratio=2)
 
-    # put the pieces together inside a FasterRCNN model
     model = FasterRCNN(model_feature,
                        num_classes=num_classes,
                        rpn_anchor_generator=anchor_generator,
