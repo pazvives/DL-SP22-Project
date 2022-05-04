@@ -70,7 +70,7 @@ Epoch Stats [36] - Loss Avg: 0.112939, Loss Median: 0.091720, Validation AP: 0.2
 To replicate the results above, the two steps below should be followed. 
 
  1. Backbone Training with SSL (code under /DL-SP22-Project/moco/)
- 2. Finetuning for object deteciton (code under /DL-SP22-Project/demo/)
+ 2. Finetuning for object detection (code under /DL-SP22-Project/demo/)
 
 
    ## Backbone Training with SSL
