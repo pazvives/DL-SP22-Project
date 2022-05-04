@@ -90,48 +90,73 @@ To replicate the results above, the two steps below should be followed.
       
       
    3. Run SSL Backbone pretraining
-   
+      [For reproducibility read this step until the end before executing anything]
       ```
       cd /DL-SP22-Project/moco
       sbatch moco_v2.slurm
       ```
       
-      To reproduce our best model it is needed to run the slurm above with the parameters as already defined in file. 
-      The result you the script with the parameters as defined in the slurm. 
+      Note: this slurm assumes you follow step (1) and thus your data is unzipped under the project folder. 
+            If that is not the case, please replace the path ```/scratch/$USER/DL-SP22-Project/``` by the corresponding path.
       
-      Notes on script arguments: 
-     
-            There is no need to modify any argument in the slurm file 
-      Notes:
+      To reproduce our best model: run the slurm above with the parameters as already defined in file. 
+      The resulting checkpoint after that run (100 epochs) should be used as input to finetuning. 
+      The name of the checkpoint will be:  ```checkpoint_0100.pth.tar```
+
       
-      - Checkpoints are going to be saved every ten epochs. In our case, we ran it for 100 epochs and took the last epoch as the starting point for the             finetuning.
-      - This script assumes your dataset root is 'scratch/$USER/DL-SP22-Project' (as first step indicates). If that is not the case, you should replace that path inside the slurm script.
+      
+      
 
    ## Finetuning for object detection
+   
+   1. Create a folder for backbone checkpoints under demo and copy your checkpoint from backbone training to the folder:
+   
+     ```
+     mkdir /DL-SP22-Project/demo/checkpoints
+     cp /DL-SP22-Project/moco/<ssl_checkpoint_name> /DL-SP22-Project/demo/checkpoints/<ssl_checkpoint_name>
+     ```
+     
+     Note: as said earlier, to reproduce our resuls you should use ```checkpoint_0100.pth.tar``` in the operation above.
 
-   1. Run the finetuning script
 
+   2. Run the finetuning script
+      [For reproducibility read this step until the end before executing anything]
+      
       ```
       cd /DL-SP22-Project/demo
       sbatch demo_mocov2_fpn.slurm
       ``` 
      
      
-   Notes on script arguments: 
+      Notes on script arguments: 
      
-       --bp <ssl_checkpoint_path> 
-       Use this option if you want to start the finetuning from a checkpoint from the SSL training.
-       Note that this type of checkpoints only have the backbone network.
+       --bp <backbone_checkpoint_path> 
+       Use this option to provide a backbone checkpoint to start the finetuning with the results from the SSL pretraining.
+       At the moment it is already setup to the desired checkpoint ```checkpoint_0100.pth.tar``` for reproducibility.
 
        --resume <e2e_checkpoint_path>
-       Use this option if you want to start the finetuning from a checkpoint from the Finetuning training.
-       Note that this type of checkpoints have the entire network.
+       Use this option if you want to resume the finetuning from a checkpoint from the Finetuning training (named as e2e checkpoints).
+       Note that this type of checkpoints have the entire network versus the ssl/backbone checkpoints that only contain the backbone
+       network weights.
 
        --lr
        Use this option to run the script with different LR's.
+       At the moment this is setup to the value we used for traininig.
+       
+       --batch-size
+       Use this option to run the script with different batch sizes.
+       Note that this is the total batch-size (ie split among all GPUS). 
+       Due to memory requirements, the maximum trainable batch size per GPU is 2. Thus, we suggest setting it up to 4 if you have 2 GPUS, and to 8 if you have 4 GPUs. 
+       
+      To reproduce our best model, you will need to execute this script three times, each one with different settings.
+      To make that easier we created those scripts (see below). Each one has the corresponding set of epochs and LRs that took us to the best model (more to be explained on paper).
+      It is important to know that each script builds on the result of the other (the --resume option of the r2 and r3 scripts is set
+      to be the last checkpoint of the previous run). In the same way, r1 depends on the resulting checkpoint of the SSL training (that should already be in the expected folder after step 1 of this section).
+      
+      ```
+      cd /DL-SP22-Project/demo
+      sbatch demo_mocov2_fpn_r1.slurm
+      sbatch demo_mocov2_fpn_r2.slurm
+      sbatch demo_mocov2_fpn_r3.slurm
+      ``` 
      
-     
-  Notes on replicating our results:
-     Our best model was the result of different runs:
-     - [TODO PAZ: Complete with the details of our final run]
- 
