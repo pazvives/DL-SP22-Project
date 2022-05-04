@@ -118,7 +118,7 @@ To replicate the results above, the two steps below should be followed.
 
    ## Finetuning for object detection
    
-   1. Create a folder for backbone checkpoints under demo and copy your checkpoint from backbone training to the folder:
+   1. Create a folder for backbone checkpoints under demo and copy your checkpoint from backbone training to the folder
    
    
       ```
