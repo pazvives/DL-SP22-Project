@@ -23,8 +23,9 @@ Notes on script arguments:
        At the moment it is setup to the e2e checkpoint we provided 'best_e2e_checkpoint.pth.tar'
        Note that it should be a full network checkpoint (e2e), a backbone one would not be valid.
        
-       --batch-size 2
-       Batch size for evaluation
+       --batch-size
+       Batch size for evaluation.
+       At the moment it is setup to 2.
        
        --dataset-root 
        Root of dataset to be tested ('root' as required by 'LabeledDataset' class provided)
@@ -141,11 +142,11 @@ To replicate the results above, the two steps below should be followed.
       Notes on script arguments: 
       
        ```
-       --bp <backbone_checkpoint_path> 
+       --bp 
        Use this option to provide a backbone checkpoint to start the finetuning with the results from the SSL pretraining.
        At the moment it is already setup to the desired checkpoint 'checkpoint_0100.pth.tar' setup in previous step.
 
-       --resume <e2e_checkpoint_path>
+       --resume
        Use this option if you want to resume the finetuning from a checkpoint from the Finetuning training (named as e2e checkpoints).
        Note that this type of checkpoints have the entire network versus the ssl/backbone checkpoints that only contain the backbone
        network weights.
@@ -173,3 +174,5 @@ To replicate the results above, the two steps below should be followed.
       sbatch demo_mocov2_fpn_r3.slurm
       ``` 
      
+      After all this training, you should be able to evaluate your resulting checkpoint following our evaluation steps and arrive
+      to the same results we provided. Congrats!
