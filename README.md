@@ -130,7 +130,7 @@ To replicate the results above, the two steps below should be followed.
 
    2. Run the finetuning script
       
-      [For reproducibility read this step until the end before executing anything]
+      [For reproducibility of our best model read this step until the end before executing anything]
       
       ```
       cd /DL-SP22-Project/demo
@@ -139,10 +139,11 @@ To replicate the results above, the two steps below should be followed.
      
      
       Notes on script arguments: 
-     
+      
+       ```
        --bp <backbone_checkpoint_path> 
        Use this option to provide a backbone checkpoint to start the finetuning with the results from the SSL pretraining.
-       At the moment it is already setup to the desired checkpoint ```checkpoint_0100.pth.tar``` for reproducibility.
+       At the moment it is already setup to the desired checkpoint ```checkpoint_0100.pth.tar``` setup in previous step.
 
        --resume <e2e_checkpoint_path>
        Use this option if you want to resume the finetuning from a checkpoint from the Finetuning training (named as e2e checkpoints).
@@ -157,11 +158,13 @@ To replicate the results above, the two steps below should be followed.
        Use this option to run the script with different batch sizes.
        Note that this is the total batch-size (ie split among all GPUS). 
        Due to memory requirements, the maximum trainable batch size per GPU is 2. Thus, we suggest setting it up to 4 if you have 2 GPUS, and to 8 if you have 4 GPUs. 
+       ``` 
        
       To reproduce our best model, you will need to execute this script three times, each one with different settings.
       To make that easier we created those scripts (see below). Each one has the corresponding set of epochs and LRs that took us to the best model (more to be explained on paper).
       It is important to know that each script builds on the result of the other (the --resume option of the r2 and r3 scripts is set
       to be the last checkpoint of the previous run). In the same way, r1 depends on the resulting checkpoint of the SSL training (that should already be in the expected folder after step 1 of this section).
+      
       
       ```
       cd /DL-SP22-Project/demo
