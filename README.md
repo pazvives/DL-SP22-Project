@@ -119,12 +119,13 @@ To replicate the results above, the two steps below should be followed.
    
    1. Create a folder for backbone checkpoints under demo and copy your checkpoint from backbone training to the folder:
    
-     ```
-     mkdir /DL-SP22-Project/demo/checkpoints
-     cp /DL-SP22-Project/moco/<ssl_checkpoint_name> /DL-SP22-Project/demo/checkpoints/<ssl_checkpoint_name>
-     ```
+   
+      ```
+      mkdir /DL-SP22-Project/demo/checkpoints
+      cp /DL-SP22-Project/moco/<ssl_checkpoint_name> /DL-SP22-Project/demo/checkpoints/<ssl_checkpoint_name>
+      ```
      
-     Note: as said earlier, to reproduce our resuls you should use ```checkpoint_0100.pth.tar``` in the operation above.
+      To reproduce our best model you should use ```checkpoint_0100.pth.tar``` in the operation above.
 
 
    2. Run the finetuning script
